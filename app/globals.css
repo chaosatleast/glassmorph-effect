@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: #f2f1f0;
+    --foreground: #0d0d0d;
+    --primary: #007aff;
+}
+
+.dark {
+    --background: #0d0d0d;
+    --foreground: #f2f1f0;
+    --primary: #e6f285;
+}
+
+body {
+    /* color: var(--foreground);
+  background: var(--background); */
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+}
+
+@layer components {
+    .social-link-text {
+        @apply font-mono text-base font-semibold;
+    }
+
+    .social-link-arrow-icon {
+        @apply -mb-0.5 -ml-1 inline h-[1.5rem] w-[1.5rem];
+    }
+
+    .screen-width {
+        @apply mx-auto w-full;
+    }
+
+    .screen-width-header {
+        @apply mx-auto max-w-5xl;
+    }
+}
