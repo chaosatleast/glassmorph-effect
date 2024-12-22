@@ -14,6 +14,7 @@
     "matter-js": "^0.20.0",
     "motion": "^11.15.0",
     "next": "14.2.20",
+    "p5": "^1.11.2",
     "react": "^18",
     "react-dom": "^18",
     "split-type": "^0.3.4"
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@types/matter-js": "^0.19.8",
     "@types/node": "^20",
+    "@types/p5": "^1.7.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",

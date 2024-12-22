@@ -1,20 +1,38 @@
 "use client";
 
 import { contents } from "@/libs/const";
-import gsap from "gsap";
-import Matter from "matter-js";
+import Matter, { IEvent, MouseConstraint } from "matter-js";
 import { motion } from "motion/react";
+import p5 from "p5";
 import { useEffect, useRef } from "react";
-import Atom from "./Atom";
+
+type CircleRefProps = {
+    body: Matter.Body;
+    circleRadius: number;
+    color?: string;
+    strokeColor?: string;
+};
+
+const INITIAL_RADIUS = 100;
+
+const SCALE_FACTOR = 1.2;
+
+interface ICustomMouse extends IEvent<MouseConstraint> {
+    body: Matter.Body;
+}
 
 function Scene() {
     const sceneRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const canvasRef = useRef<HTMLDivElement>(null);
 
-    const circleBodyRef = useRef<Matter.Body[]>([]);
+    const circleBodyRef = useRef<CircleRefProps[]>([]);
     const wallBodyRef = useRef<Matter.Body[]>([]);
+    const mouseConstraintRef = useRef<Matter.MouseConstraint>();
 
     const refs = useRef<HTMLDivElement[]>([]);
+
+    const p5InstanceRef = useRef<p5 | null>(null); // Ref to store p5 instance
+
     refs.current = [];
 
     const Engine = Matter.Engine;
@@ -24,6 +42,8 @@ function Scene() {
     const Runner = Matter.Runner;
     const Body = Matter.Body;
     const Events = Matter.Events;
+    const Mouse = Matter.Mouse;
+    const MouseConstraint = Matter.MouseConstraint;
 
     // Single Walls With Ref
     const createWall = (x: number, y: number, w: number, h: number) => {
@@ -38,7 +58,8 @@ function Scene() {
 
     // Walls
     const createWalls = (engine: Matter.Engine) => {
-        const h = 20;
+        console.log("Creating Walls");
+        const h = 40;
         if (!sceneRef.current) return;
         const walls = [
             createWall(
@@ -71,193 +92,355 @@ function Scene() {
         Composite.add(engine.world, walls);
     };
 
-    const createCircles = (engine: Matter.Engine) => {
-        if (!sceneRef.current || !canvasRef.current) return;
-
-        const canvasWidth = sceneRef.current.offsetWidth;
-        const canvasHeight = sceneRef.current.offsetHeight;
-
-        const circles = refs.current.map((atom, index) => {
-            console.log("CreateBody", index);
-            var circleElemWidth = atom.offsetWidth;
-            var circleElemHeight = atom.offsetHeight;
-            const radius = Math.max(circleElemWidth, circleElemHeight) / 2;
-
-            const x = Math.random() * (canvasWidth - 2 * radius) + radius; // 随机 x 坐标
-            const y = Math.random() * (canvasHeight - 2 * radius) + radius; // 随机 y 坐标
-
-            const body = Bodies.circle(x, y, radius, {
-                restitution: 1,
-                friction: 0,
-                frictionAir: 0,
-                density: 0.01,
-                velocity: { x: 0, y: 0 },
-                render: { fillStyle: "blue" },
-            });
-
-            Composite.add(engine.world, body);
-
-            return body;
+    const createAtoms = (
+        engine: Matter.Engine,
+        x: number,
+        y: number,
+        radius: number,
+    ) => {
+        const body = Bodies.circle(x, y, radius, {
+            restitution: 0.8, // Lower restitution for less bouncing
+            friction: 0.05, // Small friction to prevent sliding forever
+            density: 0.01, // Light body, adjust if needed
+            velocity: { x: 0, y: 0 }, // Start with zero velocity
+            isStatic: false, // Dynamic body, will interact with other bodies
+            frictionAir: 0.01, // Light air resistance
         });
 
-        if (!circles) return;
-
-        circleBodyRef.current = circles;
+        Composite.add(engine.world, body);
+        return body;
     };
 
     const beforeUpdate = () => {
+        console.log("Before Update");
         circleBodyRef.current.forEach((atom) => {
             const maxSpeed = 10;
-            const velocity = atom.velocity;
-
-            Matter.Body.setVelocity(atom, {
+            const velocity = atom.body.velocity;
+            console.log("Before Update");
+            Matter.Body.setVelocity(atom.body, {
                 x: Math.max(-maxSpeed, Math.min(velocity.x, maxSpeed)),
                 y: Math.max(-maxSpeed, Math.min(velocity.y, maxSpeed)),
             });
 
-            const x = Math.max(50, atom.position.x);
-            const y = Math.max(50, atom.position.y);
-            if (x !== atom.position.x || y !== atom.position.y) {
-                Matter.Body.setPosition(atom, { x, y });
+            const x = Math.max(50, atom.body.position.x);
+            const y = Math.max(50, atom.body.position.y);
+            if (x !== atom.body.position.x || y !== atom.body.position.y) {
+                Matter.Body.setPosition(atom.body, { x, y });
             }
         });
     };
 
-    const afterUpdate = () => {
-        refs.current.forEach((ref, index) => {
-            gsap.set(ref, {
-                x:
-                    circleBodyRef.current[index].position.x -
-                    ref?.offsetWidth / 2,
-                y:
-                    circleBodyRef.current[index].position.y -
-                    ref?.offsetHeight / 2,
+    const sketchCanvas = () => {
+        if (!sceneRef.current) return;
+        if (p5InstanceRef.current) {
+            return;
+        }
 
-                rotation: circleBodyRef.current[index].angle,
-            });
-        });
-    };
+        const { clientHeight, clientWidth } = sceneRef.current;
 
-    const handleResize = (engine: Matter.Engine, render: Matter.Render) => {
-        if (!sceneRef.current || !canvasRef.current) return;
-        Composite.clear(engine.world, false);
+        console.log("Sceneref: ", clientHeight, clientWidth);
 
-        createWalls(engine);
-
-        refs.current.forEach((ref, index) => {
-            ref.style.left = `${0}px`;
-            ref.style.top = `${0}px`;
-            ref.style.transform = `rotate(0deg)`;
-        });
-
-        // create atom or pill
-        createCircles(engine);
-    };
-
-    useEffect(() => {
-        // Matter.js code goes here
-        if (!sceneRef.current || !canvasRef.current) return;
-
-        console.log(
-            sceneRef.current.offsetWidth,
-            sceneRef.current.offsetHeight,
-        );
         const engine = Engine.create({
             gravity: { x: 0, y: 1 },
+            timing: {
+                timeScale: 1,
+            },
+            constraintIterations: 2,
         });
+
+        if (!canvasRef.current) return;
+
+        const mouse = Matter.Mouse.create(canvasRef.current);
+        const mouseConstraint = Matter.MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: {
+                stiffness: 0.2,
+                render: { visible: false }, // Hide the line connecting the mouse
+            },
+        });
+
         const render = Render.create({
-            element: sceneRef.current,
+            element: document.body,
             engine: engine,
-            canvas: canvasRef.current,
             options: {
                 pixelRatio: window.devicePixelRatio,
-                width: sceneRef.current.offsetWidth,
-                height: sceneRef.current.offsetHeight,
-                wireframes: false,
-                background: "transparent",
-
+                width: clientWidth,
+                height: clientHeight,
+                wireframes: true,
+                background: "red",
                 showDebug: true,
                 showCollisions: true,
                 showPerformance: true,
             },
         });
 
-        // Add walls to the scene
         createWalls(engine);
-
-        // create atom or pill
-        createCircles(engine);
-
-        // console.log(
-        //     "Circles",
-        //     circles.map((circle) => circle.body.position),
-        // );
-        // console.log(
-        //     "Circles",
-        //     circles.map((circle) => ({
-        //         circleElemPosX: circle.circleElemPosX,
-        //         circleElemPosY: circle.circleElemPosY,
-        //     })),
-        // );
-
-        // Runner
         const runner = Runner.create();
-        Runner.run(runner, engine);
         Render.run(render);
+        Runner.run(runner, engine);
+
+        mouseConstraintRef.current = mouseConstraint;
+        Matter.Composite.add(engine.world, mouseConstraint);
+
+        // Matter.Events.on(mouseConstraint, "startdrag", (event) => {
+        //     const body = event.source.body;
+        //     const ref = circleBodyRef.current.find(
+        //         (item) => item.body.id == body.id,
+        //     );
+
+        //     console.log("startdrag >> refbody", ref);
+        //     console.log("startdrag >> actualbody", body);
+
+        //     if (body.circleRadius == INITIAL_RADIUS) {
+        //         body.circleRadius = body.circleRadius * SCALE_FACTOR;
+        //         Matter.Body.scale(body, SCALE_FACTOR, SCALE_FACTOR);
+        //     }
+        // });
+
+        // Matter.Events.on(mouseConstraint, "enddrag", (event) => {
+        //     const e = event as ICustomMouse;
+        //     const body = e.body;
+        //     // event.source.body = body;
+
+        //     console.log("enddrag >> actualbody", event);
+
+        //     Matter.Body.scale(body, 0.8, 0.8);
+        // });
 
         // Engine Events
-        Events.on(engine, "beforeUpdate", () => beforeUpdate());
+        // Events.on(engine, "beforeUpdate", () => {
+        //     Composite.allBodies(engine.world).forEach((atom) => {
+        //         if (atom.circleRadius) {
+        //             const maxSpeed = 10;
+        //             const velocity = atom.velocity;
+        //             console.log("Before Update");
+        //             Matter.Body.setVelocity(atom, {
+        //                 x: Math.max(-maxSpeed, Math.min(velocity.x, maxSpeed)),
+        //                 y: Math.max(-maxSpeed, Math.min(velocity.y, maxSpeed)),
+        //             });
 
-        Events.on(engine, "afterUpdate", () => afterUpdate());
+        //             const x = Math.max(50, atom.position.x);
+        //             const y = Math.max(50, atom.position.y);
+        //             if (x !== atom.position.x || y !== atom.position.y) {
+        //                 Matter.Body.setPosition(atom, { x, y });
+        //             }
+        //         }
+        //     });
+        // });
 
-        window.addEventListener("resize", () => {
-            Events.off(engine, "afterUpdate", () => afterUpdate());
-            Events.off(engine, "beforeUpdate", () => beforeUpdate());
+        // p5InstanceRef.current = new p5((sketch) => {
+        //     sketch.setup = () => {
+        //         sketch.noCanvas();
 
-            handleResize(engine, render);
+        //         createWalls(engine);
+        //         contents.forEach((content: string, index: number) => {
+        //             const x =
+        //                 Math.random() * (clientWidth - 2 * INITIAL_RADIUS) +
+        //                 INITIAL_RADIUS;
+        //             const y =
+        //                 Math.random() * (clientHeight - 2 * INITIAL_RADIUS) +
+        //                 INITIAL_RADIUS;
+        //             const body = createAtoms(engine, x, y, INITIAL_RADIUS);
+        //             console.log(body);
+        //             circleBodyRef.current.push({
+        //                 body,
+        //                 circleRadius: INITIAL_RADIUS,
+        //                 color: "red",
+        //             });
+        //         });
 
-            Events.on(engine, "beforeUpdate", () => beforeUpdate());
-            Events.on(engine, "afterUpdate", () => afterUpdate());
-        });
-        return () => {
-            Render.stop(render);
-            Engine.clear(engine);
-            window.removeEventListener("resize", () => {
-                handleResize(engine, render);
-            });
-        };
-    }, [refs]);
+        //         Render.run(render);
+        //         Runner.run(runner, engine);
+        //     };
+
+        //     sketch.draw = () => {
+        //         sketch.background(125);
+        //         Matter.Engine.update(engine);
+
+        //         circleBodyRef.current.forEach((atom) => {
+        //             const { x, y } = atom.body.position;
+        //             const radius = atom.body.circleRadius || 100;
+
+        //             sketch.fill(200, 0, 0);
+        //             sketch.ellipse(x, y, radius * 2, radius * 2);
+        //         });
+        //     };
+
+        //     sketch.windowResized = () => {
+        //         console.log("resize canvas");
+        //         if (!sceneRef.current) return;
+        //         const { clientHeight, clientWidth } = sceneRef.current;
+
+        //         sketch.background(125);
+        //         circleBodyRef.current = [];
+
+        //         Composite.clear(engine.world, false);
+        //         createWalls(engine);
+        //         contents.forEach((content: string, index: number) => {
+        //             const radius = 100;
+        //             const x =
+        //                 Math.random() * (clientWidth - 2 * radius) + radius;
+        //             const y =
+        //                 Math.random() * (clientHeight - 2 * radius) + radius;
+        //             const body = createAtoms(engine, x, y, radius);
+
+        //             circleBodyRef.current.push({
+        //                 body,
+        //                 circleRadius: radius,
+        //                 color: "red",
+        //             });
+        //         });
+
+        //         sketch.resizeCanvas(clientWidth, clientHeight);
+        //         sketch.background(125);
+        //     };
+        // });
+
+        console.log("Canvas Ref", canvasRef.current);
+    };
 
     useEffect(() => {
-        console.log(refs.current.length); // This should print 10 if all 10 balls are correctly created.
-    }, [refs]);
+        sketchCanvas();
+        return () => {
+            // p5InstanceRef.current?.remove();
+            // p5InstanceRef.current = null;
+        };
+    }, []);
+
+    useEffect(() => {
+        // const render = Render.create({
+        //     element: sceneRef.current,
+        //     engine: engine,
+        //     canvas: canvasRef.current,
+        //     options: {
+        //         pixelRatio: window.devicePixelRatio,
+        //         width: clientWidth,
+        //         height: clientHeight,
+        //         wireframes: false,
+        //         background: "transparent",
+        //         showDebug: true,
+        //         showCollisions: true,
+        //         showPerformance: true,
+        //     },
+        // });
+
+        // Add walls to the scene
+
+        // const mouse = Mouse.create(sceneRef.current);
+        // const mouseConstraint = MouseConstraint.create(engine, {
+        //     mouse: mouse,
+        //     constraint: {
+        //         stiffness: 0.2,
+        //         render: { visible: true },
+        //     },
+        // });
+
+        // Composite.add(engine.world, mouseConstraint);
+        // render.mouse = mouse;
+
+        // const runner = Runner.create();
+        // Runner.run(runner, engine);
+        // // Render.run(render);
+
+        // console.log(circleBodyRef.current.map((item) => item.position));
+        // Events.on(engine, "beforeUpdate", () => beforeUpdate());
+
+        // Events.on(engine, "afterUpdate", () => afterUpdate());
+
+        return () => {
+            circleBodyRef.current = [];
+        };
+    }, []);
+
+    // useEffect(() => {
+    //     console.log(circleBodyRef.current.map((item) => item.position));
+    // }, [circleBodyRef.current]);
+
+    // useEffect(() => {
+    //     // Matter.js code goes here
+    //     if (!sceneRef.current || !canvasRef.current) return;
+
+    //     console.log(
+    //         sceneRef.current.offsetWidth,
+    //         sceneRef.current.offsetHeight,
+    //     );
+    //     const engine = Engine.create({
+    //         gravity: { x: 0, y: 1 },
+    //     });
+    //     const render = Render.create({
+    //         element: sceneRef.current,
+    //         engine: engine,
+    //         // canvas: canvasRef.current,
+    //         options: {
+    //             pixelRatio: window.devicePixelRatio,
+    //             width: sceneRef.current.offsetWidth,
+    //             height: sceneRef.current.offsetHeight,
+    //             wireframes: false,
+    //             background: "transparent",
+    //             showDebug: true,
+    //             showCollisions: true,
+    //             showPerformance: true,
+    //         },
+    //     });
+
+    //     // Add walls to the scene
+    //     createWalls(engine);
+
+    //     // create atom or pill
+    //     createCircles(engine);
+
+    //     const mouse = Mouse.create(sceneRef.current);
+    //     const mouseConstraint = MouseConstraint.create(engine, {
+    //         mouse: mouse,
+    //         constraint: {
+    //             stiffness: 0.2,
+    //             render: { visible: true },
+    //         },
+    //     });
+
+    //     Composite.add(engine.world, mouseConstraint);
+    //     render.mouse = mouse;
+
+    //     const runner = Runner.create();
+    //     Runner.run(runner, engine);
+    //     Render.run(render);
+
+    //     // Engine Events
+    //     Events.on(engine, "beforeUpdate", () => beforeUpdate());
+
+    //     Events.on(engine, "afterUpdate", () => afterUpdate());
+
+    //     window.addEventListener("resize", () => {
+    //         Events.off(engine, "afterUpdate", () => afterUpdate());
+    //         Events.off(engine, "beforeUpdate", () => beforeUpdate());
+
+    //         handleResize(engine, render);
+
+    //         Events.on(engine, "beforeUpdate", () => beforeUpdate());
+    //         Events.on(engine, "afterUpdate", () => afterUpdate());
+    //     });
+    //     return () => {
+    //         Render.stop(render);
+    //         Engine.clear(engine);
+    //         window.removeEventListener("resize", () => {
+    //             handleResize(engine, render);
+    //         });
+    //     };
+    // }, [refs]);
+
+    // useEffect(() => {
+    //     console.log(refs.current.length); // This should print 10 if all 10 balls are correctly created.
+    // }, [refs]);
 
     return (
-        <motion.div
-            className="my-auto h-full max-h-screen w-full rounded-2xl"
+        <div
+            className="h-full w-full"
             // initial={{ scale: 5 }}
             // whileInView={{ scale: 1 }}
-            transition={{ duration: 1, ease: "easeInOut" }}
+            ref={sceneRef}
         >
-            <div ref={sceneRef} className="relative h-full w-full">
-                <canvas ref={canvasRef} className=""></canvas>
-
-                {contents.map((content: string, index: number) => (
-                    <div
-                        key={index}
-                        className={
-                            "atom absolute left-0 top-0 h-36 w-36 shrink-0 rounded-full"
-                        }
-                        ref={(el: HTMLDivElement) => {
-                            refs.current?.push(el);
-                        }}
-                    >
-                        {" "}
-                        <Atom key={index} text={content} />
-                    </div>
-                ))}
-            </div>
-        </motion.div>
+            {/* <div ref={canvasRef} className="h-full w-full"></div> */}
+        </div>
     );
 }
 

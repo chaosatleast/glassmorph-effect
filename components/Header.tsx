@@ -14,7 +14,7 @@ type Props = {
 function Header({ imageUrl }: Props) {
     const themeContext = useContext(ThemeContext);
     return (
-        <div className="fixed left-0 top-0 z-50 flex h-16 w-full items-center justify-center">
+        <div className="flex h-full w-full items-center justify-center px-5">
             <div className="screen-width-header flex h-full w-full items-center justify-between">
                 <div className="relative h-10 w-10 rounded-full">
                     {imageUrl && (
