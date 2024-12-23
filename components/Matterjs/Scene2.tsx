@@ -5,7 +5,7 @@ import p5 from "p5";
 import { useContext, useEffect, useRef, useState } from "react";
 import { ThemeContext } from "../LayoutWrapper";
 import CreativeButton from "../CreativeButton";
-import { b } from "framer-motion/client";
+import { b, th } from "framer-motion/client";
 
 interface ICustomMouse extends IEvent<MouseConstraint> {
     body: Matter.Body;
@@ -22,6 +22,9 @@ const DARK_FOREGROUND = "#f2f1f0";
 
 const LIGHT_BACKGROUND = "#f2f1f0";
 const LIGHT_FOREGROUND = "#0d0d0d";
+
+const LIGHT_PRIMARY_COLOR = "#007aff";
+const DARK_PRIMARY_COLOR = "#e6f285";
 
 const Scene2 = () => {
     const sceneRef = useRef<HTMLDivElement>(null);
@@ -310,7 +313,7 @@ const Scene2 = () => {
             if (atomsArr.includes(e.body) && shape === "pill") {
                 draggedBody = e.body;
 
-                Matter.Body.scale(draggedBody, 2, 2);
+                Matter.Body.scale(draggedBody, 1.25, 1.25);
             }
         });
 
@@ -364,8 +367,13 @@ const Scene2 = () => {
 
         // * Mouse leave and enter events
         sceneRef.current.addEventListener("mouseleave", () => {
-            if (draggedBody && shape === "atom") {
-                Matter.Body.scale(draggedBody, 0.5, 0.5);
+            if (draggedBody) {
+                if (shape === "atom") {
+                    Matter.Body.scale(draggedBody, 0.5, 0.5);
+                } else {
+                    Matter.Body.scale(draggedBody, 0.8, 0.8);
+                }
+
                 const boundingX =
                     draggedBody.bounds.max.x - draggedBody.bounds.min.x;
                 const boundingY =
@@ -376,9 +384,6 @@ const Scene2 = () => {
                     y: boundingY,
                 });
 
-                draggedBody = null;
-                mouseConstraint.mouse.button = -1;
-            } else {
                 draggedBody = null;
                 mouseConstraint.mouse.button = -1;
             }
@@ -432,9 +437,13 @@ const Scene2 = () => {
                     theme === "dark" ? DARK_BACKGROUND : LIGHT_BACKGROUND;
 
                 let itemColor =
-                    theme === "dark" ? DARK_BACKGROUND : LIGHT_BACKGROUND;
+                    theme === "dark" ? DARK_PRIMARY_COLOR : LIGHT_PRIMARY_COLOR;
 
                 let strokeColor: p5.Color = p.color(
+                    theme === "dark" ? DARK_BACKGROUND : LIGHT_BACKGROUND,
+                );
+
+                let draggedColor = p.color(
                     theme === "dark" ? DARK_FOREGROUND : LIGHT_FOREGROUND,
                 );
 
@@ -443,17 +452,13 @@ const Scene2 = () => {
 
                 let index = 0;
                 strokeColor = p.color(strokeColor);
-                strokeColor.setAlpha(150);
 
                 Matter.Composite.allBodies(engine.world).forEach((body) => {
                     if (body.label === "atom" && index < contents.length) {
                         if (draggedBody === body) {
-                            strokeColor.setAlpha(255);
-                            p.fill(strokeColor);
+                            p.fill(draggedColor);
 
                             if (shape === "pill") {
-                                // console.log("drawing pill");
-
                                 p.rect(
                                     body.position.x,
                                     body.position.y,
@@ -474,7 +479,7 @@ const Scene2 = () => {
                             p.textSize(15);
                             p.noStroke();
 
-                            p.fill(itemColor);
+                            p.fill(strokeColor);
                             p.text(
                                 contents[index],
                                 draggedBody.position.x,
@@ -482,7 +487,6 @@ const Scene2 = () => {
                             );
                             p.textAlign(p.CENTER, p.CENTER);
                         } else {
-                            strokeColor.setAlpha(150);
                             p.fill(itemColor);
                             p.stroke(strokeColor);
                             let x = body.position.x,
