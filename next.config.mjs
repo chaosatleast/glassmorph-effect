@@ -2,7 +2,6 @@
 
 const nextConfig = {
     images: {
-        domains: ["img-chaosatleast.vercel.app"], // Only add the correct domain
         remotePatterns: [
             {
                 protocol: "https",
