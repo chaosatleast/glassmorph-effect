@@ -5,13 +5,13 @@
 :root {
     --background: #f2f1f0;
     --foreground: #0d0d0d;
-    --primary: #ff2e74;
+    --primary: #007aff;
 }
 
 .dark {
     --background: #0d0d0d;
     --foreground: #f2f1f0;
-    --primary: #97b9ff;
+    --primary: #e6f285;
 }
 
 body {

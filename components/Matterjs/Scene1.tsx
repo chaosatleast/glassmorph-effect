@@ -1,19 +1,22 @@
 "use client";
 import { contents } from "@/libs/const";
+import { canvas } from "framer-motion/client";
 import Matter, { Composite, IEvent, MouseConstraint, Runner } from "matter-js";
+import p5 from "p5";
 import React, { useEffect } from "react";
 
 interface ICustomMouse extends IEvent<MouseConstraint> {
     body: Matter.Body;
 }
-const INITIAL_RADIUS = 70;
-const BOUNDARY_HEIGHT = 50;
+const INITIAL_RADIUS = 50;
+const BOUNDARY_HEIGHT = 10;
 
 const PILL_LENGTH = 200;
 const PILL_HEIGHT = 50;
 
 function Scene1() {
     const sceneRef = React.useRef<HTMLDivElement>(null);
+    const canvasRef = React.useRef<HTMLDivElement>(null);
 
     function createBoundaries() {
         if (!sceneRef.current) return;
@@ -50,6 +53,51 @@ function Scene1() {
         ];
 
         return boundaries;
+    }
+    function createSingleAtom(x: number, y: number) {
+        const atom = Matter.Bodies.circle(
+            x,
+            y,
+            INITIAL_RADIUS, // Increased radius from 20 to 50
+            {
+                label: "atom", // Added label
+                restitution: 1,
+                frictionAir: 0.01,
+                friction: 0,
+                density: 1,
+                render: {
+                    fillStyle: "red",
+                },
+            },
+        );
+        return atom;
+    }
+
+    function createAtoms1() {
+        if (!sceneRef.current) return;
+        const { clientHeight, clientWidth } = sceneRef.current;
+
+        //  *create atom (circle)
+
+        const atoms: Matter.Body[] = [];
+
+        contents.forEach((content, index) => {
+            const x =
+                (index + 1) % 2 === 0
+                    ? Math.random() * (clientWidth - INITIAL_RADIUS * 2) +
+                      INITIAL_RADIUS
+                    : Math.random() * (clientWidth - INITIAL_RADIUS * 2) +
+                      INITIAL_RADIUS;
+
+            const y =
+                Math.random() * (clientHeight - INITIAL_RADIUS * 2) +
+                INITIAL_RADIUS;
+
+            const atom = createSingleAtom(x, y);
+            atoms.push(atom);
+        });
+
+        return atoms;
     }
 
     function createAtoms() {
@@ -183,7 +231,7 @@ function Scene1() {
         Composite.add(engine.world, pill);
 
         // *Add atoms to the scene
-        const balls = createAtoms();
+        const balls = createAtoms1();
         if (!balls) return;
         Matter.World.add(engine.world, balls);
 
@@ -292,12 +340,15 @@ function Scene1() {
         Runner.run(runner, engine);
 
         return () => {
+            Matter.Render.stop(render);
+            Matter.Runner.stop(runner);
+            Matter.World.clear(engine.world, false);
             render.canvas.remove();
             render.textures = {};
         };
     }, []);
 
-    return <div className="h-full w-full" ref={sceneRef}></div>;
+    return <div className="relative h-full w-full" ref={sceneRef}></div>;
 }
 
 export default Scene1;
