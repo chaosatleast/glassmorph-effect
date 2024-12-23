@@ -27,6 +27,11 @@ const Scene2 = () => {
     const sceneRef = useRef<HTMLDivElement>(null);
     const [shape, setShape] = useState<"atom" | "pill">("pill");
 
+    const [pillArea, setPillArea] = useState({
+        width: 200,
+        height: 50,
+    });
+
     const { theme } = useContext(ThemeContext);
     function createBoundaries() {
         if (!sceneRef.current) return;
@@ -87,19 +92,17 @@ const Scene2 = () => {
     function createSinglePill(
         x: number,
         y: number,
-        PILL_HEIGHT: number,
-        PILL_LENGTH: number,
+        height: number,
+        width: number,
     ) {
-        const pillRect = Matter.Bodies.rectangle(
-            x,
-            y,
-            PILL_LENGTH,
-            PILL_HEIGHT,
-            {
-                chamfer: { radius: PILL_HEIGHT / 2 },
-                label: "atom", // Added label
-            },
-        );
+        const pillRect = Matter.Bodies.rectangle(x, y, width, height, {
+            chamfer: { radius: height / 2 },
+            label: "atom", // Added label
+            restitution: 0.8,
+            frictionAir: 0.01,
+            friction: 0.05,
+            density: 0.001,
+        });
         return pillRect;
     }
 
@@ -109,13 +112,28 @@ const Scene2 = () => {
         const { clientHeight, clientWidth } = sceneRef.current;
         const atoms: Matter.Body[] = [];
 
+        let PILL_HEIGHT = 50;
+        let PILL_WIDTH = 200;
+        if (clientWidth < 769) {
+            PILL_HEIGHT = 40;
+            PILL_WIDTH = 150;
+        } else {
+            PILL_HEIGHT = 70;
+            PILL_WIDTH = 250;
+        }
+
         contents.forEach((content, index) => {
-            const atom = createSinglePill(
-                Math.random() * clientWidth,
-                Math.random() * clientHeight,
-                PILL_HEIGHT,
-                PILL_LENGTH,
-            );
+            const x =
+                (index + 1) % 2 === 0
+                    ? Math.random() * (clientWidth - PILL_WIDTH) +
+                      PILL_WIDTH / 2
+                    : Math.random() * (clientWidth - PILL_WIDTH) +
+                      PILL_WIDTH / 2;
+
+            const y =
+                Math.random() * (clientHeight - PILL_HEIGHT) + PILL_HEIGHT / 2;
+
+            const atom = createSinglePill(x, y, PILL_HEIGHT, PILL_WIDTH);
             atoms.push(atom);
         });
 
@@ -162,23 +180,24 @@ const Scene2 = () => {
 
         const engine = Matter.Engine.create({});
 
-        const boundaries = createBoundaries();
-        if (!boundaries) return;
-        Matter.World.add(engine.world, boundaries);
-
-        const atomsArr: Matter.Body[] = [];
-
         // const render = Matter.Render.create({
         //     element: sceneRef.current,
         //     engine: engine,
         //     options: {
         //         width: clientWidth,
         //         height: clientHeight,
-        //         wireframes: true,
+        //         wireframes: false,
         //         background: "transparent",
         //     },
         // });
         // Matter.Render.run(render);
+
+        const boundaries = createBoundaries();
+        if (!boundaries) return;
+        Matter.World.add(engine.world, boundaries);
+
+        const atomsArr: Matter.Body[] = [];
+
         if (shape === "pill") {
             const pills = createPills();
             if (!pills) return;
@@ -248,31 +267,33 @@ const Scene2 = () => {
             width: number,
             height: number,
         ) {
-            const { x, y } = body.position;
+            const minX = BOUNDARY_HEIGHT;
+            const maxX = clientWidth - BOUNDARY_HEIGHT;
+            const minY = BOUNDARY_HEIGHT;
+            const maxY = clientHeight - BOUNDARY_HEIGHT;
 
-            const clampedX = Math.max(width, Math.min(clientWidth - width, x));
-            const clampedY = Math.max(
-                height,
-                Math.min(clientHeight - height, y),
-            );
+            let { x, y } = body.position;
+            let { x: vx, y: vy } = body.velocity;
 
-            const maxSpeed = 10;
-            const velocity = body.velocity;
-            const speed = Math.sqrt(
-                velocity.x * velocity.x + velocity.y * velocity.y,
-            );
-            if (speed > maxSpeed) {
-                Matter.Body.setVelocity(body, {
-                    x: (velocity.x / speed) * maxSpeed,
-                    y: (velocity.y / speed) * maxSpeed,
-                });
+            // Correct position and velocity when out of bounds horizontally
+            if (x < minX) {
+                x = minX;
+                vx = Math.abs(vx); // Reverse velocity to keep it within bounds
+            } else if (x > maxX) {
+                x = maxX;
+                vx = -Math.abs(vx); // Reverse velocity to keep it within bounds
             }
-            if (x !== clampedX || y !== clampedY) {
-                Matter.Body.setPosition(body, {
-                    x: clampedX,
-                    y: clampedY,
-                });
+
+            // Correct position and velocity when out of bounds vertically
+            if (y < minY) {
+                y = minY;
+                vy = Math.abs(vy); // Reverse velocity to keep it within bounds
+            } else if (y > maxY) {
+                y = maxY;
+                vy = -Math.abs(vy); // Reverse velocity to keep it within bounds
             }
+            Matter.Body.setVelocity(body, { x: vx, y: vy });
+            Matter.Body.setPosition(body, { x, y });
         }
 
         // *Track the currently dragged body
@@ -283,8 +304,12 @@ const Scene2 = () => {
             const e = event as ICustomMouse;
 
             if (atomsArr.includes(e.body) && shape === "atom") {
-                console.log("Start Drag", shape);
                 draggedBody = e.body;
+                Matter.Body.scale(draggedBody, 2, 2);
+            }
+            if (atomsArr.includes(e.body) && shape === "pill") {
+                draggedBody = e.body;
+
                 Matter.Body.scale(draggedBody, 2, 2);
             }
         });
@@ -296,13 +321,30 @@ const Scene2 = () => {
                 Matter.Body.scale(draggedBody, 0.5, 0.5);
                 draggedBody = null;
             }
+            if (draggedBody === e.body && shape === "pill") {
+                Matter.Body.scale(draggedBody, 0.8, 0.8);
+                draggedBody = null;
+            }
         });
 
         // *Enforce boundaries on every update
         Matter.Events.on(engine, "beforeUpdate", () => {
             if (shape === "pill") {
-                let INITIAL_WIDTH = 50;
-                let INITIAL_HEIGHT = 200;
+                atomsArr.forEach((ball) =>
+                    enforceBoundariesPill(
+                        ball,
+                        pillArea.width,
+                        pillArea.height,
+                    ),
+                );
+
+                if (draggedBody) {
+                    enforceBoundariesPill(
+                        draggedBody,
+                        pillArea.width * 1.25,
+                        pillArea.height * 1.25,
+                    );
+                }
             } else {
                 let INITIAL_RADIUS = 50;
                 if (clientWidth < 769) {
@@ -322,8 +364,6 @@ const Scene2 = () => {
 
         // * Mouse leave and enter events
         sceneRef.current.addEventListener("mouseleave", () => {
-            console.log("Mouse Leave");
-
             if (draggedBody && shape === "atom") {
                 Matter.Body.scale(draggedBody, 0.5, 0.5);
                 const boundingX =
@@ -331,7 +371,6 @@ const Scene2 = () => {
                 const boundingY =
                     draggedBody.bounds.max.y - draggedBody.bounds.min.y;
 
-                console.log("Bounding X:", boundingX);
                 Matter.Body.setPosition(draggedBody, {
                     x: boundingX,
                     y: boundingY,
@@ -339,11 +378,13 @@ const Scene2 = () => {
 
                 draggedBody = null;
                 mouseConstraint.mouse.button = -1;
+            } else {
+                draggedBody = null;
+                mouseConstraint.mouse.button = -1;
             }
         });
 
         function handleResize() {
-            console.log("Resizing");
             Matter.Composite.clear(engine.world, false);
 
             atomsArr.length = 0;
@@ -357,7 +398,6 @@ const Scene2 = () => {
                 if (!pills) return;
                 atomsArr.push(...pills);
                 Matter.World.add(engine.world, pills);
-                console.log("pills", pills);
             } else {
                 const atoms = createAtoms();
                 if (!atoms) return;
@@ -380,8 +420,6 @@ const Scene2 = () => {
             Matter.Engine.update(engine);
         }
 
-        window.addEventListener("resize", () => handleResize());
-
         const p5Instance = new p5((p: p5) => {
             p.setup = () => {
                 if (!sceneRef.current) return;
@@ -390,8 +428,6 @@ const Scene2 = () => {
             };
 
             p.draw = () => {
-                if (!sceneRef.current) return;
-
                 let color =
                     theme === "dark" ? DARK_BACKGROUND : LIGHT_BACKGROUND;
 
@@ -401,12 +437,14 @@ const Scene2 = () => {
                 let strokeColor: p5.Color = p.color(
                     theme === "dark" ? DARK_FOREGROUND : LIGHT_FOREGROUND,
                 );
+
                 p.background(color);
                 Matter.Engine.update(engine);
 
                 let index = 0;
                 strokeColor = p.color(strokeColor);
                 strokeColor.setAlpha(150);
+
                 Matter.Composite.allBodies(engine.world).forEach((body) => {
                     if (body.label === "atom" && index < contents.length) {
                         if (draggedBody === body) {
@@ -415,23 +453,22 @@ const Scene2 = () => {
 
                             if (shape === "pill") {
                                 // console.log("drawing pill");
-                                // const width =
-                                //     body.bounds.max.x - body.bounds.min.x;
-                                // const height =
-                                //     body.bounds.max.y - body.bounds.min.y;
-                                // p.rect(
-                                //     body.position.x,
-                                //     body.position.y,
-                                //     width,
-                                //     height,
-                                //     height / 2,
-                                // );
-                            } else {
-                                p.ellipse(
+
+                                p.rect(
                                     body.position.x,
                                     body.position.y,
-                                    body.circleRadius * 2,
+                                    pillArea.width * 1.25,
+                                    pillArea.height * 1.25,
+                                    (pillArea.height * 1.25) / 2,
                                 );
+                            } else {
+                                if (body.circleRadius) {
+                                    p.ellipse(
+                                        body.position.x,
+                                        body.position.y,
+                                        body.circleRadius * 2,
+                                    );
+                                }
                             }
 
                             p.textSize(15);
@@ -452,7 +489,6 @@ const Scene2 = () => {
                                 y = body.position.y;
 
                             if (shape === "pill") {
-                                console.log("drawing pill", body);
                                 p.rectMode(p.CENTER);
                                 p.push();
 
@@ -467,9 +503,9 @@ const Scene2 = () => {
                                 p.rect(
                                     0,
                                     0,
-                                    PILL_LENGTH,
-                                    PILL_HEIGHT,
-                                    PILL_HEIGHT / 2,
+                                    pillArea.width,
+                                    pillArea.height,
+                                    pillArea.height / 2,
                                 );
                                 p.textAlign(p.CENTER, p.CENTER);
                                 p.fill(strokeColor);
@@ -503,19 +539,46 @@ const Scene2 = () => {
                 if (!sceneRef.current) return;
                 const { clientWidth, clientHeight } = sceneRef.current;
                 p.background(0);
+                p.clear();
                 p.resizeCanvas(clientWidth, clientHeight);
+
                 Matter.Engine.update(engine);
             };
         }, sceneRef.current);
 
         console.log("p5.js instance created");
 
+        window.addEventListener("resize", () => {
+            handleResize();
+        });
+
         // Cleanup function to remove p5.js instance on unmount
         return () => {
             p5Instance.remove();
-            window.removeEventListener("resize", () => handleResize());
+            window.removeEventListener("resize", () => {
+                handleResize();
+            });
         };
-    }, [theme, shape]);
+    }, [theme, shape, pillArea]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (!sceneRef.current) return;
+            const { clientWidth } = sceneRef.current;
+            if (clientWidth < 769) {
+                setPillArea({ width: 150, height: 40 });
+            } else {
+                setPillArea({ width: 250, height: 70 });
+            }
+        };
+
+        handleResize();
+
+        window.addEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
 
     return (
         <div className="relative h-full w-full">
