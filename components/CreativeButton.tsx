@@ -66,6 +66,7 @@ const CreativeButton: React.FC<Props> = ({
 
         hoverInitial: {
             opacity: 1,
+            backgroundColor: "var(--background)",
         },
         active: {
             opacity: 0,
