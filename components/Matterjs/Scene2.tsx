@@ -1,10 +1,10 @@
 "use client";
 import { contents } from "@/libs/const";
-import Matter, { IEvent, MouseConstraint, Render, Runner } from "matter-js";
+import Matter, { IEvent, MouseConstraint } from "matter-js";
 import p5 from "p5";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ThemeContext } from "../LayoutWrapper";
-import { text } from "stream/consumers";
+import CreativeButton from "../CreativeButton";
 
 interface ICustomMouse extends IEvent<MouseConstraint> {
     body: Matter.Body;
@@ -24,8 +24,7 @@ const LIGHT_FOREGROUND = "#0d0d0d";
 
 const Scene2 = () => {
     const sceneRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLDivElement>(null);
-    const p5InstanceRef = useRef<p5 | null>(null); // Ref to store p5 instance
+    const [shape, setShape] = useState<"atom" | "pill">("atom");
 
     const { theme } = useContext(ThemeContext);
     function createBoundaries() {
@@ -82,6 +81,62 @@ const Scene2 = () => {
             },
         );
         return atom;
+    }
+
+    function createSinglePill(
+        x: number,
+        y: number,
+        PILL_HEIGHT: number,
+        PILL_LENGTH: number,
+    ) {
+        const pillRect = Matter.Bodies.rectangle(
+            x,
+            y,
+            PILL_LENGTH,
+            PILL_HEIGHT,
+            {
+                chamfer: { radius: PILL_HEIGHT / 2 },
+                label: "atom", // Added label
+                restitution: 1,
+                frictionAir: 0.01,
+                friction: 0,
+                density: 1,
+            },
+        );
+        return pillRect;
+    }
+
+    function createPills() {
+        if (!sceneRef.current) return;
+        const { clientHeight, clientWidth } = sceneRef.current;
+
+        let INITIAL_RADIUS = 50;
+        if (clientWidth < 769) {
+            INITIAL_RADIUS = 50;
+        } else {
+            INITIAL_RADIUS = 70;
+        }
+
+        //  *create atom (pill)
+
+        const atoms: Matter.Body[] = [];
+
+        contents.forEach((content, index) => {
+            const x =
+                (index + 1) % 2 === 0
+                    ? Math.random() * (clientWidth - PILL_LENGTH * 2) +
+                      PILL_LENGTH
+                    : Math.random() * (clientWidth - PILL_LENGTH * 2) +
+                      PILL_LENGTH;
+
+            const y =
+                Math.random() * (clientHeight - PILL_HEIGHT * 2) + PILL_HEIGHT;
+
+            const atom = createSinglePill(x, y, PILL_HEIGHT, PILL_LENGTH);
+            atoms.push(atom);
+        });
+
+        return atoms;
     }
 
     function createAtoms() {
@@ -285,16 +340,16 @@ const Scene2 = () => {
 
             p.draw = () => {
                 if (!sceneRef.current) return;
-                const { clientWidth, clientHeight } = sceneRef.current;
-                // Draw a transparent overlay (optional)
+
                 let color =
                     theme === "dark" ? DARK_BACKGROUND : LIGHT_BACKGROUND;
 
                 let itemColor =
                     theme === "dark" ? DARK_BACKGROUND : LIGHT_BACKGROUND;
 
-                let strokeColor: any =
-                    theme === "dark" ? DARK_FOREGROUND : LIGHT_FOREGROUND;
+                let strokeColor: p5.Color = p.color(
+                    theme === "dark" ? DARK_FOREGROUND : LIGHT_FOREGROUND,
+                );
                 p.background(color);
                 Matter.Engine.update(engine);
 
@@ -369,7 +424,30 @@ const Scene2 = () => {
         };
     }, [theme]);
 
-    return <div className="h-full w-full" ref={sceneRef}></div>;
+    return (
+        <div className="relative h-full w-full">
+            <div className="absolute left-1/4 top-10 flex gap-x-4">
+                <CreativeButton
+                    onClick={() => {
+                        setShape("atom");
+                    }}
+                    isActive={shape === "atom"}
+                >
+                    Atom
+                </CreativeButton>
+
+                <CreativeButton
+                    onClick={() => {
+                        setShape("pill");
+                    }}
+                    isActive={shape === "pill"}
+                >
+                    Capsule
+                </CreativeButton>
+            </div>
+            <div className="h-full w-full" ref={sceneRef}></div>
+        </div>
+    );
 };
 
 export default Scene2;
