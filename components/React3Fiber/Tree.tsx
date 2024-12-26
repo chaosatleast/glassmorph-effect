@@ -1,10 +1,6 @@
 "use client";
-import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import {
-    Bloom,
-    EffectComposer
-} from "@react-three/postprocessing";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { useContext } from "react";
 import { ThemeContext } from "../LayoutWrapper";
 import Ribbon from "./Ribbon";
@@ -23,8 +19,6 @@ function Tree() {
                 <Star />
 
                 <Ribbon />
-
-                <OrbitControls />
 
                 <EffectComposer enableNormalPass={false}>
                     <Bloom
