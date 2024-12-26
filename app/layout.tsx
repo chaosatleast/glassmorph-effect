@@ -5,7 +5,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import LayoutWrapper from "@/components/LayoutWrapper";
 
-export const inter_init = Inter({
+const inter_init = Inter({
     subsets: ["latin"],
     display: "swap",
     variable: "--font-inter",

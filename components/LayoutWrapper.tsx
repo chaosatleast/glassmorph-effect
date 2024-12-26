@@ -28,7 +28,7 @@ function LayoutWrapper({ children }: Props) {
                 }
             >
                 <div className="relative h-full w-full">
-                    <div className="absolute top-0 h-16 w-full">
+                    <div className="absolute top-0 z-50 h-16 w-full">
                         <Header
                             imageUrl={
                                 theme === "dark"
@@ -40,7 +40,7 @@ function LayoutWrapper({ children }: Props) {
                     <div className="relative top-16 h-[calc(100%_-_230px)] w-full md:h-[calc(100%_-_180px)]">
                         {children}
                     </div>
-                    <div className="absolute bottom-0 w-full">
+                    <div className="absolute bottom-0 z-50 w-full">
                         <Footer />
                     </div>
                 </div>
