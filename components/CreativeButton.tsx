@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { motion } from "framer-motion";
 import React from "react";
 
@@ -66,7 +64,6 @@ const CreativeButton: React.FC<Props> = ({
 
         hoverInitial: {
             opacity: 1,
-            backgroundColor: "var(--background)",
         },
         active: {
             opacity: 0,

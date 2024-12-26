@@ -5,8 +5,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import LayoutWrapper from "@/components/LayoutWrapper";
 
-const inter = Inter({
+const inter_init = Inter({
     subsets: ["latin"],
+    display: "swap",
     variable: "--font-inter",
 });
 
@@ -34,7 +35,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body
-                className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
+                className={`${inter_init.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
             >
                 <LayoutWrapper>{children}</LayoutWrapper>
             </body>
