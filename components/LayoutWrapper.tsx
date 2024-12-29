@@ -18,7 +18,7 @@ export const ThemeContext = createContext<{
 const imgDomain = process.env.NEXT_PUBLIC_IMAGE_DOMAIN;
 
 function LayoutWrapper({ children }: Props) {
-    const [theme, setTheme] = useState("dark" as "dark" | "light");
+    const [theme, setTheme] = useState("light" as "dark" | "light");
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>
             <div
