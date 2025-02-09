@@ -2,16 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-    --background: #f2f1f0;
-    --foreground: #0d0d0d;
-    --primary: #007aff;
+.dark {
+    /* in Use */
+
+    --background: 13, 13, 13;
+    --foreground: 64, 63, 62;
+
+    --n-primary: 164, 36, 35;
+    --n-secondary: 17, 55, 58;
+    --n-tertiary: 0, 49, 83;
+
+    --t-primary: 38, 35, 32; /* Darkest warm gray */
+    --t-secondary: 105, 100, 95; /* Mid-tone warm gray */
+    --t-tertiary: 160, 155, 150; /* Softer warm gray */
+
+    --b-tertiary: 255, 166, 49;
+    --b-info: 26, 43, 77;
+    --b-warning: 61, 42, 26;
+    --b-success: 26, 61, 45;
+    --b-accent-green: 127, 239, 189;
+
+    --b-accent-grey: 84, 88, 102;
+    --b-accent-green-grey: 43, 49, 63;
+    --b-accent-blue-grey: 28, 32, 37;
+
+    --b-accent-info: 58, 134, 255;
+    --b-accent-success: 76, 175, 80;
+    --b-accent-warning: 255, 167, 38;
+
+    /* Not-in use */
+    --b-primary: 14, 56, 125;
+    --b-accent: 54, 54, 54;
+    --b-secondary: 90, 161, 218;
 }
 
-.dark {
-    --background: #0d0d0d;
-    --foreground: #f2f1f0;
-    --primary: #e6f285;
+:root {
+    /* in Use */
+    --background: 244, 245, 247;
+    --foreground: 228, 228, 228;
+
+    --n-primary: 255, 255, 255;
+    --n-secondary: 126, 179, 86;
+    --n-tertiary: 90, 161, 218;
+
+    --t-primary: 40, 36, 33; /* Darkest warm gray */
+    --t-secondary: 90, 84, 78; /* Medium warm gray */
+    --t-tertiary: 140, 132, 125; /* Softer warm gray */
+
+    --b-tertiary: 255, 128, 10;
+    --b-info: 208, 231, 255;
+    --b-warning: 255, 241, 194;
+    --b-success: 214, 247, 232;
+
+    --b-accent-green: 29, 78, 216;
+
+    --b-accent-grey: 202, 204, 208;
+    --b-accent-green-grey: 192, 194, 199;
+    --b-accent-blue-grey: 213, 214, 217;
+
+    --b-accent-info: 58, 134, 255;
+    --b-accent-success: 52, 211, 153;
+    --b-accent-warning: 245, 158, 11;
+
+    /* Not-in use */
+    --b-primary: 14, 56, 125;
+    --b-accent: 54, 54, 54;
+    --b-secondary: 229, 229, 229;
 }
 
 body {
@@ -20,36 +76,47 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-.p5Canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -99;
-    display: none;
-}
-
 @layer utilities {
     .text-balance {
         text-wrap: balance;
     }
 }
 
+/* #three-canvases {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+} */
+
 @layer components {
     .social-link-text {
-        @apply font-mono text-base font-semibold;
+        @apply text-base font-semibold;
     }
 
     .social-link-arrow-icon {
-        @apply -mb-0.5 -ml-1 inline h-[1.5rem] w-[1.5rem];
+        @apply inline h-[1.5rem] w-[1.2rem] 2xl:h-[2.5rem] 2xl:w-[2.5rem];
     }
 
     .screen-width {
-        @apply mx-auto w-full;
+        @apply mx-auto h-full w-full max-w-screen-2xl px-5 md:px-12 lg:px-16;
+    }
+
+    .content-width {
+        @apply px-5 md:max-w-2xl lg:max-w-4xl;
     }
 
     .screen-width-header {
-        @apply mx-auto max-w-5xl;
+        @apply mx-auto max-w-[1575px] px-5 md:px-12;
+    }
+
+    .post-content-width {
+        @apply mx-auto px-5 md:max-w-2xl lg:max-w-4xl;
+    }
+
+    .screen-width-footer {
+        @apply mx-auto px-5;
     }
 }

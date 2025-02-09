@@ -1,6 +1,6 @@
 "use client";
 
-import { Center, useMatcapTexture, useTexture } from "@react-three/drei";
+import { Center } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { motion } from "framer-motion-3d";
 import { useEffect, useMemo, useRef } from "react";
@@ -48,8 +48,8 @@ function Glassmorph({ theme }: Props) {
         const gridSize = 1; // Square size
         const countWidth = viewport.width / gridSize;
         const countHeight = viewport.height / gridSize;
-        const radius = 0.02; // Corner radius
-        const gap = 0.12; // Gap between squares
+        const radius = 0.01; // Corner radius
+        const gap = 0.11; // Gap between squares
 
         for (let i = 0; i < countWidth; i++) {
             for (let j = 0; j < countHeight; j++) {
@@ -135,18 +135,6 @@ function Glassmorph({ theme }: Props) {
         return Math.min(Math.max((value - min) / (max - min), 0), 1);
     }
 
-    function mouseToOpacity(x: number, y: number) {
-        let opacity = 1.0;
-        const distance = Math.sqrt(x * x + y * y);
-        if (distance < 0.5) {
-            opacity = 0.0;
-        } else {
-            opacity = 1.0;
-        }
-        console.log("Opacity", opacity);
-        return opacity;
-    }
-
     useEffect(() => {
         grid.shapes.map(({ shape, position }, index) => {
             console.log(
@@ -163,20 +151,7 @@ function Glassmorph({ theme }: Props) {
         <>
             <motion.mesh position={[0, 0, -20]}>
                 <planeGeometry args={[size.width, size.height]} />
-                <shaderMaterial
-                    uniforms={uniforms.current}
-                    vertexShader={`
-                        void main() {
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `}
-                    fragmentShader={`
-                        uniform vec3 color;
-                        void main() {
-                            gl_FragColor = vec4(color, 1.0);
-                        }
-                    `}
-                />{" "}
+                <meshBasicMaterial color={"#f2f1f0"} />
             </motion.mesh>
 
             <Center
@@ -203,15 +178,9 @@ function Glassmorph({ theme }: Props) {
 
                             <meshPhysicalMaterial
                                 opacity={0}
-                                // ior={1.5}
                                 roughness={0.5}
                                 transmission={1}
                                 thickness={2}
-                                // clearcoat={10}
-                                // normalMap={grid.normalMap}
-                                // clearcoatNormalMap={grid.normalMap}
-                                // normalScale={new THREE.Vector2(10)}
-                                // clearcoatNormalScale={new THREE.Vector2(10)}
                                 onBeforeCompile={(shader) => {
                                     shader.uniforms = {
                                         ...shader.uniforms,

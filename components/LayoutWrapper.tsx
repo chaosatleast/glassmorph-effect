@@ -1,7 +1,10 @@
 "use client";
+import { usePathname } from "next/navigation";
 import React, { createContext, useState } from "react";
-import Header from "./Header";
 import Footer from "./Footer";
+import Header from "./Header";
+import Image from "next/image";
+import Scene from "./React3Fiber/Scene";
 
 type Props = {
     children: React.ReactNode;
@@ -19,29 +22,47 @@ const imgDomain = process.env.NEXT_PUBLIC_IMAGE_DOMAIN;
 
 function LayoutWrapper({ children }: Props) {
     const [theme, setTheme] = useState("light" as "dark" | "light");
+
+    const pathname = usePathname();
+
+    if (pathname.includes("/admin")) {
+        return <> {children} </>;
+    }
+
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>
             <div
-                className={
-                    "fixed h-screen w-full bg-background " +
-                    (theme == "dark" ? "dark" : "")
-                }
+                className={"scrollbar-invisible touch-auto bg-background " + ""}
+                style={{
+                    scrollbarWidth: "none",
+                }}
             >
-                <div className="relative h-full w-full">
-                    <div className="absolute top-0 z-50 h-16 w-full">
+                <div className="">
+                    {/* Header  */}
+                    <div className="fixed left-0 top-0 z-0 h-screen w-screen">
+                        <div className="hidden h-full w-full md:block">
+                            <Scene />
+                        </div>
+                    </div>
+
+                    <div className="fixed top-0 z-50 w-full">
                         <Header
                             imageUrl={
                                 theme === "dark"
-                                    ? imgDomain + "ChaosAtleast_white.png"
-                                    : imgDomain + "ChaosAtleast_black.png"
+                                    ? imgDomain +
+                                      "logo-nobg/Chaosatleast-bg-transparent-white.png"
+                                    : imgDomain +
+                                      "logo-nobg/Chaosatleast-bg-transparent-black.png"
                             }
                         />
                     </div>
-                    <div className="relative top-16 h-[calc(100%_-_230px)] w-full md:h-[calc(100%_-_180px)]">
-                        {children}
-                    </div>
-                    <div className="absolute bottom-0 z-50 w-full">
-                        <Footer />
+                    <div className="flex flex-col">
+                        {/* Body */}
+
+                        <div className="">{children}</div>
+                        <div className="relative">
+                            <Footer />
+                        </div>
                     </div>
                 </div>
             </div>

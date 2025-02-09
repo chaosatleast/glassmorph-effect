@@ -1,16 +1,20 @@
-import Grid from "@/components/React3Fiber/Grid";
+import SlideUpAnimation from "@/components/SlideUpAnimation";
+import TextRotateSlideUp from "@/components/TextRotateSlideUp";
 import dynamic from "next/dynamic";
-
-const Scene = dynamic(() => import("../components/React3Fiber/Scene"), {
-    ssr: false,
-});
 
 export default function Home() {
     return (
-        <div className="relative h-full w-full">
-            <div className="absolute left-0 top-0 z-10 h-full w-full">
-                {" "}
-                <Scene />
+        <div className="min-h-svh w-screen">
+            <div className="">
+                <div className="flex h-screen w-full justify-end pb-5 pr-12 text-right">
+                    <div className="font-geist-sans text-t-primary pointer-events-none relative flex h-full w-1/2 items-end text-9xl font-black">
+                        <SlideUpAnimation>
+                            <div className="text-[#f2f2f2]">
+                                Frosted Glass Grid
+                            </div>
+                        </SlideUpAnimation>
+                    </div>
+                </div>
             </div>
         </div>
     );
